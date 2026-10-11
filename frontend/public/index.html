@@ -1,0 +1,217 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>CodeArena — Competitive Programming Platform</title>
+<meta name="description" content="CodeArena: Solve algorithmic problems, compete in contests, and climb the leaderboard."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="toast-container"></div>
+<nav id="navbar">
+  <div class="nav-logo" onclick="navigate('home')"><i class="fa-solid fa-trophy"></i> CodeArena</div>
+  <div class="nav-links">
+    <button class="nav-link active" id="nav-home" onclick="navigate('home')"><i class="fa-solid fa-house"></i> Home</button>
+    <button class="nav-link" id="nav-problems" onclick="navigate('problems')"><i class="fa-solid fa-list-check"></i> Problems</button>
+    <button class="nav-link" id="nav-contests" onclick="navigate('contests')"><i class="fa-solid fa-flag-checkered"></i> Contests</button>
+    <button class="nav-link" id="nav-leaderboard" onclick="navigate('leaderboard')"><i class="fa-solid fa-ranking-star"></i> Leaderboard</button>
+    <button class="nav-link" id="nav-submissions" onclick="navigate('submissions')"><i class="fa-solid fa-clock-rotate-left"></i> Submissions</button>
+  </div>
+  <div class="nav-right" id="nav-auth-area">
+    <button class="btn btn-outline btn-sm" onclick="openLoginModal()">Login</button>
+    <button class="btn btn-primary btn-sm" onclick="openRegisterModal()">Register</button>
+  </div>
+</nav>
+<div id="app">
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <div class="hero">
+      <div class="hero-bg"></div>
+      <div class="hero-orb hero-orb1"></div>
+      <div class="hero-orb hero-orb2"></div>
+      <div class="hero-content">
+        <div class="hero-badge"><i class="fa-solid fa-bolt"></i> Competitive Programming Platform</div>
+        <h1>Code. Compete.<br/>Conquer.</h1>
+        <p class="hero-sub">Sharpen your algorithmic skills, compete in real-time contests, and climb the global leaderboard on CodeArena.</p>
+        <div class="hero-cta">
+          <button class="btn btn-primary btn-lg" onclick="navigate('problems')"><i class="fa-solid fa-play"></i> Start Solving</button>
+          <button class="btn btn-outline btn-lg" onclick="navigate('contests')"><i class="fa-solid fa-flag-checkered"></i> View Contests</button>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><div class="hero-stat-num" id="stat-users">0</div><div class="hero-stat-label">Coders</div></div>
+          <div class="hero-stat"><div class="hero-stat-num" id="stat-problems">0</div><div class="hero-stat-label">Problems</div></div>
+          <div class="hero-stat"><div class="hero-stat-num" id="stat-submissions">0</div><div class="hero-stat-label">Submissions</div></div>
+          <div class="hero-stat"><div class="hero-stat-num" id="stat-contests">0</div><div class="hero-stat-label">Contests</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="container section">
+      <div class="section-header">
+        <div><div class="section-title"><span class="gradient-text">Featured Contests</span></div><div class="section-sub">Active and upcoming programming contests</div></div>
+        <button class="btn btn-outline btn-sm" onclick="navigate('contests')">View All <i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+      <div class="grid-2" id="home-contests"></div>
+    </div>
+    <div class="container section" style="padding-top:0">
+      <div><div class="section-title"><span class="gradient-text">Practice Problems</span></div><div class="section-sub">Popular algorithmic challenges</div></div>
+      <div class="card card-list" id="home-problems-list"></div>
+    </div>
+    <footer><div class="container"><div class="footer-content">
+      <div class="footer-logo">CodeArena</div>
+      <div class="footer-copy">Built with love for competitive programmers</div>
+      <div class="footer-links"><a class="footer-link" href="#">About</a><a class="footer-link" href="#">API</a><a class="footer-link" href="#">GitHub</a></div>
+    </div></div></footer>
+  </div>
+  <!-- PROBLEMS -->
+  <div class="page" id="page-problems">
+    <div class="container section">
+      <div class="section-title"><span class="gradient-text">Problems</span></div>
+      <div class="section-sub">Solve challenges across all difficulty levels</div>
+      <div class="filters">
+        <input type="text" class="search-input" id="problem-search" placeholder="Search problems..." oninput="filterProblems()"/>
+        <button class="filter-btn active" id="filter-all" onclick="setDiffFilter('')">All</button>
+        <button class="filter-btn" id="filter-easy" onclick="setDiffFilter('Easy')">Easy</button>
+        <button class="filter-btn" id="filter-medium" onclick="setDiffFilter('Medium')">Medium</button>
+        <button class="filter-btn" id="filter-hard" onclick="setDiffFilter('Hard')">Hard</button>
+      </div>
+      <div class="card card-list" id="problems-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    </div>
+  </div>
+  <!-- EDITOR -->
+  <div class="page editor-page" id="page-editor">
+    <div class="editor-header">
+      <button class="btn btn-ghost btn-sm" onclick="navigate('problems')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+      <span id="editor-problem-title" style="font-weight:700;font-size:16px;flex:1;margin:0 16px;"></span>
+      <span id="editor-problem-badge"></span>
+    </div>
+    <div class="editor-body">
+      <div class="problem-panel">
+        <div class="problem-content">
+          <div class="tabs">
+            <button class="tab active" onclick="switchProblemTab('description',this)">Description</button>
+            <button class="tab" onclick="switchProblemTab('examples',this)">Examples</button>
+            <button class="tab" onclick="switchProblemTab('submissions-tab',this)">My Submissions</button>
+          </div>
+          <div class="tab-panel active" id="tab-description">
+            <div class="prob-meta" id="prob-meta"></div>
+            <div class="prob-statement" id="prob-detail-statement"></div>
+            <div class="divider"></div>
+            <div class="prob-section"><div class="prob-section-label">Input Format</div><div class="prob-section-body" id="prob-detail-input"></div></div>
+            <div class="prob-section"><div class="prob-section-label">Output Format</div><div class="prob-section-body" id="prob-detail-output"></div></div>
+            <div class="prob-section"><div class="prob-section-label">Constraints</div><div class="prob-section-body mono" id="prob-detail-constraints"></div></div>
+          </div>
+          <div class="tab-panel" id="tab-examples"><div id="prob-detail-examples"></div></div>
+          <div class="tab-panel" id="tab-submissions-tab"><div id="prob-my-submissions"><div class="loading"><div class="spinner"></div>Loading...</div></div></div>
+        </div>
+      </div>
+      <div class="code-panel">
+        <div class="code-toolbar">
+          <select class="form-input lang-select" id="lang-select">
+            <option value="cpp">C++17</option>
+            <option value="python">Python 3</option>
+            <option value="java">Java 21</option>
+            <option value="go">Go</option>
+            <option value="rust">Rust</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="resetEditor()" title="Reset"><i class="fa-solid fa-rotate-left"></i></button>
+          <button class="btn btn-ghost btn-sm" onclick="copyCode()" title="Copy"><i class="fa-solid fa-copy"></i></button>
+          <div style="flex:1;"></div>
+          <button class="btn btn-outline btn-sm" onclick="runCode()"><i class="fa-solid fa-play"></i> Run</button>
+          <button class="btn btn-primary btn-sm" onclick="submitCode()" id="submit-btn"><i class="fa-solid fa-paper-plane"></i> Submit</button>
+        </div>
+        <textarea id="code-editor" spellcheck="false" placeholder="// Write your solution here..."></textarea>
+        <div id="code-result" style="display:none;" class="code-result"></div>
+        <div class="code-footer">
+          <span class="code-status" id="code-status">Ready</span>
+          <div style="flex:1;"></div>
+          <span style="font-size:12px;color:var(--text3);">Tab = 4 spaces</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- CONTESTS -->
+  <div class="page" id="page-contests">
+    <div class="container section">
+      <div class="section-title"><span class="gradient-text">Contests</span></div>
+      <div class="section-sub">Compete, earn points, and prove your skills</div>
+      <div class="grid-2" id="contests-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    </div>
+  </div>
+  <!-- CONTEST DETAIL -->
+  <div class="page" id="page-contest-detail">
+    <div class="container section">
+      <button class="btn btn-ghost btn-sm" onclick="navigate('contests')" style="margin-bottom:24px;"><i class="fa-solid fa-arrow-left"></i> Back</button>
+      <div id="contest-detail-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    </div>
+  </div>
+  <!-- LEADERBOARD -->
+  <div class="page" id="page-leaderboard">
+    <div class="container section">
+      <div class="section-title"><span class="gradient-text">Leaderboard</span></div>
+      <div class="section-sub">Global ranking by rating</div>
+      <div class="card card-list" id="leaderboard-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    </div>
+  </div>
+  <!-- SUBMISSIONS -->
+  <div class="page" id="page-submissions">
+    <div class="container section">
+      <div class="section-title"><span class="gradient-text">Submissions</span></div>
+      <div class="section-sub">Your recent code submissions</div>
+      <div class="table-wrap" id="submissions-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+    </div>
+  </div>
+  <!-- PROFILE -->
+  <div class="page" id="page-profile">
+    <div class="profile-header">
+      <div class="container">
+        <div class="profile-info">
+          <div class="profile-avatar" id="profile-avatar"></div>
+          <div>
+            <div class="profile-name" id="profile-username"></div>
+            <div class="profile-email" id="profile-email"></div>
+            <div style="margin-top:8px;"><span class="badge badge-easy" id="profile-role"></span></div>
+          </div>
+        </div>
+        <div class="profile-stats">
+          <div class="profile-stat"><div class="profile-stat-num" id="profile-rating"></div><div class="profile-stat-label">Rating</div></div>
+          <div class="profile-stat"><div class="profile-stat-num" id="profile-solved">0</div><div class="profile-stat-label">Solved</div></div>
+          <div class="profile-stat"><div class="profile-stat-num" id="profile-submissions">0</div><div class="profile-stat-label">Submissions</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="container section">
+      <div style="font-size:18px;font-weight:700;margin-bottom:20px;">Recent Submissions</div>
+      <div class="table-wrap" id="profile-submissions-table"></div>
+    </div>
+  </div>
+</div>
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="login-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('login-modal')"><i class="fa-solid fa-xmark"></i></button>
+    <h2><i class="fa-solid fa-right-to-bracket"></i> Login</h2>
+    <div class="form-group"><label class="form-label">Username</label><input type="text" class="form-input" id="login-username" placeholder="username" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <div class="form-group"><label class="form-label">Password</label><input type="password" class="form-input" id="login-password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+    <div class="modal-footer-text">No account? <button class="btn btn-ghost btn-sm" onclick="closeModal('login-modal');openRegisterModal()">Register</button></div>
+  </div>
+</div>
+<!-- REGISTER MODAL -->
+<div class="modal-overlay" id="register-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('register-modal')"><i class="fa-solid fa-xmark"></i></button>
+    <h2><i class="fa-solid fa-user-plus"></i> Create Account</h2>
+    <div class="form-group"><label class="form-label">Username</label><input type="text" class="form-input" id="reg-username" placeholder="choose_username"/></div>
+    <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="reg-email" placeholder="you@email.com"/></div>
+    <div class="form-group"><label class="form-label">Password</label><input type="password" class="form-input" id="reg-password" placeholder="min 6 characters"/></div>
+    <button class="btn btn-primary btn-full" onclick="doRegister()"><i class="fa-solid fa-user-plus"></i> Create Account</button>
+    <div class="modal-footer-text">Have an account? <button class="btn btn-ghost btn-sm" onclick="closeModal('register-modal');openLoginModal()">Login</button></div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

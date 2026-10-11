@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  # ── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Python Backend (Flask + openpyxl Excel Database) ────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      REDIS_ADDR: "redis:6379"
+      REDIS_QUEUE: "submissions"
+      REDIS_RESULT_PREFIX: "result:"
+      DATA_FILE: "/app/data/contest.xlsx"
+      SECRET_KEY: "codearena-prod-secret-change-me"
+      FLASK_ENV: "production"
+    volumes:
+      - backend_data:/app/data
+    ports: ["5000:5000"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Node.js Frontend / Gateway ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      PORT: "3000"
+      BACKEND_URL: "http://backend:5000"
+    ports: ["3000:3000"]
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend_data:
