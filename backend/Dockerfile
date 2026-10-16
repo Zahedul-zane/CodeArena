@@ -1,14 +1,22 @@
-﻿FROM python:3.12-slim
+FROM php:8.3-cli-bookworm
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install required dependencies for code judging (Python, Node.js, G++) and libzip for Excel processing
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libzip-dev \
+    unzip \
+    zip \
+    python3 \
+    nodejs \
+    g++ \
+    && docker-php-ext-install zip \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY . .
 
-RUN mkdir -p data
+RUN mkdir -p data/results
 
 EXPOSE 5000
 
-CMD ["gunicorn","--bind","0.0.0.0:5000","--workers","2","--timeout","120","app:app"]
+CMD ["php", "-S", "0.0.0.0:5000", "index.php"]

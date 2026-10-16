@@ -12,7 +12,7 @@ const API  = process.env.BACKEND_URL || 'http://localhost:5000';
 app.use(cors());
 app.use(morgan('dev'));
 
-// Proxy all /api/* requests to the Python backend
+// Proxy all /api/* requests to the PHP backend
 app.use('/api', createProxyMiddleware({
   target: `${API}/api`,
   changeOrigin: true,
@@ -34,6 +34,6 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n  🏆  CodeArena running at http://localhost:${PORT}`);
-  console.log(`  🐍  Python backend: ${API}`);
+  console.log(`  🐘  PHP backend: ${API}`);
   console.log(`  📁  Serving static from: ${path.join(__dirname, 'public')}\n`);
 });

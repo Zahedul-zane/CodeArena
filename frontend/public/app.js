@@ -1,4 +1,4 @@
-﻿// ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 //  CodeArena — Frontend Application (app.js)
 // ══════════════════════════════════════════════════════
 const API = '/api';
@@ -7,6 +7,7 @@ let currentProblemSlug = null;
 let pollInterval = null;
 let allProblems = [];
 let diffFilter = '';
+let currentAdminSheet = 'users';
 
 const TOKEN_KEY = 'ca_token';
 const getToken  = () => localStorage.getItem(TOKEN_KEY);
@@ -16,26 +17,27 @@ const removeToken = () => localStorage.removeItem(TOKEN_KEY);
 const defaultCode = {
   cpp:`#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n    \n    // Your solution here\n    \n    return 0;\n}`,
   python:`import sys\ninput = sys.stdin.readline\n\ndef solve():\n    # Your solution here\n    pass\n\nsolve()`,
-  java:`import java.util.*;\nimport java.io.*;\n\npublic class Main {\n    public static void main(String[] args) throws IOException {\n        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n        // Your solution here\n    }\n}`,
-  go:`package main\n\nimport (\n    "bufio"\n    "fmt"\n    "os"\n)\n\nvar in  = bufio.NewReader(os.Stdin)\nvar out = bufio.NewWriter(os.Stdout)\n\nfunc main() {\n    defer out.Flush()\n    // Your solution here\n    _ = fmt.Sprint("")\n}`,
-  rust:`use std::io::{self, BufRead, Write};\n\nfn main() {\n    let stdin  = io::stdin();\n    let stdout = io::stdout();\n    let mut out = io::BufWriter::new(stdout.lock());\n    \n    for line in stdin.lock().lines() {\n        let _line = line.unwrap();\n        // Your solution here\n        let _ = writeln!(out, "");\n    }\n}`
+  javascript:`const fs = require('fs');\nconst input = fs.readFileSync(0, 'utf-8').trim();\n\nfunction solve() {\n    // Your solution here\n}\n\nsolve();`
 };
 
-// ── API helper ────────────────────────────────────────
+// ── API Helper ────────────────────────────────────────
 async function apiFetch(path, opts = {}) {
   const token = getToken();
-  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  const headers = { ...(opts.headers || {}) };
+  if (!(opts.body instanceof FormData) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (token) headers['Authorization'] = `Bearer ${token}`;
   try {
     const res  = await fetch(API + path, { ...opts, headers });
     const data = await res.json();
     return { ok: res.ok, status: res.status, data };
   } catch(e) {
-    return { ok: false, status: 0, data: { error: 'Network error' } };
+    return { ok: false, status: 0, data: { error: 'Network error or server unreachable' } };
   }
 }
 
-// ── Toast ─────────────────────────────────────────────
+// ── Toast Notifications ───────────────────────────────
 function toast(msg, type = 'info', duration = 3500) {
   const c = document.getElementById('toast-container');
   const icons = { success: 'fa-circle-check', error: 'fa-circle-exclamation', info: 'fa-circle-info' };
@@ -49,13 +51,13 @@ function toast(msg, type = 'info', duration = 3500) {
   }, duration);
 }
 
-// ── Modal ─────────────────────────────────────────────
+// ── Modal Handlers ────────────────────────────────────
 function openLoginModal()    { document.getElementById('login-modal').classList.add('active'); setTimeout(() => document.getElementById('login-username').focus(), 50); }
 function openRegisterModal() { document.getElementById('register-modal').classList.add('active'); setTimeout(() => document.getElementById('reg-username').focus(), 50); }
 function closeModal(id)      { document.getElementById(id).classList.remove('active'); }
 document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); }));
 
-// ── Auth ──────────────────────────────────────────────
+// ── Authentication ────────────────────────────────────
 async function doLogin() {
   const btn = document.getElementById('login-btn');
   btn.disabled = true;
@@ -84,7 +86,7 @@ async function doRegister() {
   if (!username || !email || !password) { toast('All fields required', 'error'); return; }
   if (password.length < 6) { toast('Password must be at least 6 characters', 'error'); return; }
   const r = await apiFetch('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password }) });
-  if (r.ok) { closeModal('register-modal'); toast('Account created! Please login.', 'success'); openLoginModal(); }
+  if (r.ok) { closeModal('register-modal'); toast('Account created in Excel DB! Please login.', 'success'); openLoginModal(); }
   else toast(r.data.error || 'Registration failed', 'error');
 }
 
@@ -96,16 +98,25 @@ async function doLogout() {
 
 function updateNavAuth() {
   const area = document.getElementById('nav-auth-area');
+  const adminNav = document.getElementById('nav-admin');
   if (currentUser) {
+    if (adminNav) {
+      adminNav.style.display = (currentUser.role === 'admin') ? 'flex' : 'none';
+    }
     const initials = currentUser.username.slice(0, 2).toUpperCase();
+    const roleBadge = currentUser.role === 'admin'
+      ? '<span class="badge" style="background:rgba(239,68,68,0.2);color:#ef4444;font-size:11px;margin-left:4px;"><i class="fa-solid fa-shield"></i> Admin</span>'
+      : '';
     area.innerHTML = `
       <button class="btn btn-ghost btn-sm" onclick="navigate('profile')">
         <div class="user-avatar" style="background:${currentUser.avatar_color};">${initials}</div>
         <span style="font-weight:600;">${currentUser.username}</span>
+        ${roleBadge}
         <span class="badge badge-easy" style="font-size:11px;">${currentUser.rating}</span>
       </button>
       <button class="btn btn-outline btn-sm" onclick="doLogout()" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>`;
   } else {
+    if (adminNav) adminNav.style.display = 'none';
     area.innerHTML = `
       <button class="btn btn-outline btn-sm" onclick="openLoginModal()">Login</button>
       <button class="btn btn-primary btn-sm" onclick="openRegisterModal()">Register</button>`;
@@ -115,8 +126,12 @@ function updateNavAuth() {
 async function loadCurrentUser() {
   if (!getToken()) return;
   const r = await apiFetch('/auth/me');
-  if (r.ok) { currentUser = r.data; updateNavAuth(); }
-  else removeToken();
+  if (r.ok) {
+    currentUser = r.data.user || r.data;
+    updateNavAuth();
+  } else {
+    removeToken();
+  }
 }
 
 // ── Navigation ────────────────────────────────────────
@@ -137,6 +152,7 @@ function navigate(page, slug = '') {
     case 'leaderboard':     loadLeaderboard(); break;
     case 'submissions':     loadSubmissions(); break;
     case 'profile':         loadProfile(); break;
+    case 'admin':           loadAdmin(); break;
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -275,8 +291,8 @@ async function runCode() {
   el.style.display = 'block';
   el.innerHTML = '<div class="loading" style="padding:12px;"><div class="spinner"></div>Running on sample...</div>';
   await new Promise(r => setTimeout(r, 600));
-  el.innerHTML = `<div style="color:var(--cyan);font-weight:600;margin-bottom:6px;">ℹ️  Local Run</div>
-    <div style="color:var(--text2);font-size:13px;">Full judging is done on submission. Use Submit to test all cases.</div>`;
+  el.innerHTML = `<div style="color:var(--cyan);font-weight:600;margin-bottom:6px;">ℹ️ Local Run</div>
+    <div style="color:var(--text2);font-size:13px;">Full test execution is done on submit. Click Submit to execute and store in Excel database.</div>`;
 }
 
 async function submitCode() {
@@ -299,7 +315,7 @@ async function submitCode() {
   const sid = r.data.submission_id;
   const el  = document.getElementById('code-result');
   el.style.display = 'block';
-  el.innerHTML     = '<div style="display:flex;align-items:center;gap:10px;"><span class="verdict verdict-PENDING">⏳ JUDGING...</span><span style="color:var(--text3);font-size:13px;">Waiting for judge result...</span></div>';
+  el.innerHTML     = '<div style="display:flex;align-items:center;gap:10px;"><span class="verdict verdict-PENDING">⏳ JUDGING...</span><span style="color:var(--text3);font-size:13px;">Executing test cases & updating Excel DB...</span></div>';
   document.getElementById('code-status').textContent = 'Judging...';
 
   let attempts = 0;
@@ -327,11 +343,11 @@ function renderVerdictResult(el, data) {
       ${data.max_memory_mb ? `<span style="color:var(--text3);font-size:13px;"><i class="fa-solid fa-memory"></i> ${parseFloat(data.max_memory_mb).toFixed(1)}MB</span>` : ''}
     </div>
     ${data.compile_error ? `<pre style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:12px;color:var(--red);white-space:pre-wrap;max-height:120px;overflow-y:auto;">${escHtml(data.compile_error)}</pre>` : ''}
-    ${v === 'AC' ? '<div style="color:var(--green);font-size:14px;font-weight:600;">All test cases passed! ✅</div>' : ''}`;
-  if (v === 'AC') toast('Accepted! All test cases passed! 🎉', 'success', 5000);
-  else if (v === 'WA') toast('Wrong Answer on at least one test case.', 'error');
+    ${v === 'AC' ? '<div style="color:var(--green);font-size:14px;font-weight:600;">All test cases passed! Stored in contest.xlsx ✅</div>' : ''}`;
+  if (v === 'AC') toast('Accepted! Saved to Excel database! 🎉', 'success', 5000);
+  else if (v === 'WA') toast('Wrong Answer on test case.', 'error');
   else if (v === 'TLE') toast('Time Limit Exceeded.', 'error');
-  else if (v === 'CE') toast('Compilation Error — check your code.', 'error');
+  else if (v === 'CE') toast('Compilation Error.', 'error');
 }
 
 // ── Contests ──────────────────────────────────────────
@@ -376,7 +392,7 @@ async function loadContestDetail(slug) {
     </div>
     <div style="font-size:18px;font-weight:700;margin-bottom:16px;">Problems</div>
     <div class="card card-list">
-      ${c.problems.map((p, i) => `<div class="problem-row" onclick="navigate('editor','${p.slug}')">
+      ${(c.problems || []).map((p, i) => `<div class="problem-row" onclick="navigate('editor','${p.slug}')">
         <div class="problem-num" style="font-weight:700;color:var(--text2);">${String.fromCharCode(65+i)}</div>
         <div class="problem-title-cell"><div>${p.title}</div></div>
         <div style="margin-left:auto;display:flex;gap:12px;align-items:center;">
@@ -392,7 +408,7 @@ async function loadLeaderboard() {
   const el = document.getElementById('leaderboard-content');
   el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
   const r = await apiFetch('/leaderboard');
-  if (!r.ok) { el.innerHTML = '<div class="loading">Error.</div>'; return; }
+  if (!r.ok) { el.innerHTML = '<div class="loading">Error loading leaderboard.</div>'; return; }
   const medals = ['🥇','🥈','🥉'];
   el.innerHTML = `<table>
     <thead><tr><th>Rank</th><th>User</th><th>Rating</th><th>Solved</th></tr></thead>
@@ -452,6 +468,229 @@ async function loadProfile() {
   }
 }
 
+// ── Admin & Excel DB Console ──────────────────────────
+async function loadAdmin() {
+  if (!currentUser || currentUser.role !== 'admin') {
+    navigate('home');
+    toast('Admin access required', 'error');
+    return;
+  }
+  const r = await apiFetch('/admin/db-stats');
+  if (r.ok) {
+    const d = r.data;
+    document.getElementById('db-stat-filename').textContent = d.file_name;
+    document.getElementById('db-stat-size').textContent = `${d.file_size_kb} KB (${d.file_size_bytes} bytes)`;
+    document.getElementById('db-stat-records').textContent = `${d.total_records} rows`;
+    document.getElementById('db-stat-sheets').textContent = `${d.total_sheets} worksheets`;
+    document.getElementById('db-stat-modified').textContent = d.last_modified ? new Date(d.last_modified).toLocaleString() : 'Just now';
+
+    if (d.sheets) {
+      for (const [sheet, info] of Object.entries(d.sheets)) {
+        const el = document.getElementById(`count-${sheet}`);
+        if (el) el.textContent = info.count;
+      }
+    }
+  }
+  loadAdminSheetPreview(currentAdminSheet);
+}
+
+function switchAdminSheet(sheetName, btn) {
+  document.querySelectorAll('#admin-sheet-tabs .tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  currentAdminSheet = sheetName;
+  loadAdminSheetPreview(sheetName);
+}
+
+async function loadAdminSheetPreview(sheetName) {
+  const wrap = document.getElementById('admin-sheet-table-wrap');
+  wrap.innerHTML = '<div class="loading"><div class="spinner"></div>Loading sheet data...</div>';
+  const r = await apiFetch(`/admin/db-preview/${sheetName}?limit=50`);
+  if (!r.ok) {
+    wrap.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text3);">Failed to load sheet: ${r.data.error || 'Unknown error'}</div>`;
+    return;
+  }
+  const { headers, rows, total } = r.data;
+  if (!rows || rows.length === 0) {
+    wrap.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text3);"><i class="fa-solid fa-folder-open" style="font-size:32px;margin-bottom:12px;display:block;"></i>No records in worksheet <strong>${sheetName}</strong> yet.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `<table>
+    <thead>
+      <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+    </thead>
+    <tbody>
+      ${rows.map(row => `
+        <tr>
+          ${headers.map(h => {
+            const val = row[h];
+            if (val === null || val === undefined) return '<td style="color:var(--text3);">–</td>';
+            const strVal = String(val);
+            if (h === 'role' && strVal === 'admin') {
+              return `<td><span class="badge" style="background:rgba(239,68,68,0.2);color:#ef4444;"><i class="fa-solid fa-shield"></i> admin</span></td>`;
+            }
+            if (h === 'difficulty') {
+              return `<td><span class="badge badge-${strVal.toLowerCase()}">${strVal}</span></td>`;
+            }
+            if (h === 'verdict') {
+              return `<td><span class="verdict verdict-${strVal}">${strVal}</span></td>`;
+            }
+            if (h === 'avatar_color') {
+              return `<td><div style="display:flex;align-items:center;gap:6px;"><div style="width:14px;height:14px;border-radius:50%;background:${strVal};"></div><span style="font-size:12px;font-family:var(--mono);">${strVal}</span></div></td>`;
+            }
+            if (h.includes('json') || h === 'code' || h === 'statement') {
+              return `<td><span class="excel-cell-code" title="${escHtml(strVal)}">${escHtml(strVal)}</span></td>`;
+            }
+            if (h === 'created_at' || h === 'submitted_at' || h === 'start_time' || h === 'end_time' || h === 'expires_at') {
+              return `<td style="font-size:12px;color:var(--text2);font-family:var(--mono);">${strVal.replace('T', ' ').slice(0, 19)}</td>`;
+            }
+            return `<td class="excel-cell-text" title="${escHtml(strVal)}">${escHtml(strVal)}</td>`;
+          }).join('')}
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>`;
+}
+
+function downloadExcelDb() {
+  const token = getToken();
+  if (!token) { toast('Please log in as admin', 'error'); return; }
+  toast('Preparing live Excel workbook export... 📊', 'info');
+  const downloadUrl = `${API}/admin/export?token=${encodeURIComponent(token)}`;
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = 'CodeArena_Database.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => toast('Excel file downloaded successfully!', 'success'), 800);
+}
+
+function triggerImportExcel() {
+  const input = document.getElementById('excel-file-input');
+  if (input) input.click();
+}
+
+async function handleExcelUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!file.name.endsWith('.xlsx')) {
+    toast('Please upload an .xlsx Excel workbook', 'error');
+    return;
+  }
+  toast('Validating and importing Excel database...', 'info');
+  const formData = new FormData();
+  formData.append('file', file);
+  const r = await apiFetch('/admin/import', { method: 'POST', body: formData });
+  event.target.value = '';
+  if (r.ok) {
+    toast('Database replaced and formatted successfully! 🎉', 'success');
+    loadAdmin();
+  } else {
+    toast(r.data.error || 'Import failed', 'error');
+  }
+}
+
+async function syncExcelDb() {
+  toast('Syncing database from disk...', 'info');
+  const r = await apiFetch('/admin/db-sync', { method: 'POST' });
+  if (r.ok) {
+    toast('Excel database reloaded from disk!', 'success');
+    loadAdmin();
+  } else {
+    toast('Sync failed', 'error');
+  }
+}
+
+async function reformatExcelDb() {
+  toast('Beautifying Excel sheets & optimizing layout...', 'info');
+  const r = await apiFetch('/admin/db-format', { method: 'POST' });
+  if (r.ok) {
+    toast('Excel styled with freeze panes, borders, and auto-filters! ✨', 'success');
+    loadAdmin();
+  } else {
+    toast('Formatting failed', 'error');
+  }
+}
+
+function openCreateProblemModal() {
+  document.getElementById('create-problem-modal').classList.add('active');
+}
+
+async function doCreateProblem() {
+  const title = document.getElementById('new-prob-title').value.trim();
+  if (!title) { toast('Problem title is required', 'error'); return; }
+  const difficulty = document.getElementById('new-prob-diff').value;
+  const time_limit_ms = parseInt(document.getElementById('new-prob-time').value) || 1000;
+  const mem_limit_mb = parseInt(document.getElementById('new-prob-mem').value) || 256;
+  const tags = document.getElementById('new-prob-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+  const statement = document.getElementById('new-prob-stmt').value.trim();
+  const input_format = document.getElementById('new-prob-input-fmt').value.trim();
+  const output_format = document.getElementById('new-prob-output-fmt').value.trim();
+  const constraints = document.getElementById('new-prob-constraints').value.trim();
+  const sample_input = document.getElementById('new-prob-sample-in').value;
+  const sample_output = document.getElementById('new-prob-sample-out').value;
+
+  const test_cases = sample_input ? [{ index: 0, input: sample_input, expected: sample_output }] : [];
+
+  const r = await apiFetch('/problems', {
+    method: 'POST',
+    body: JSON.stringify({
+      title, difficulty, time_limit_ms, mem_limit_mb, tags,
+      statement, input_format, output_format, constraints,
+      sample_input, sample_output, test_cases
+    })
+  });
+
+  if (r.ok) {
+    closeModal('create-problem-modal');
+    toast('Problem added directly to contest.xlsx! 🎉', 'success');
+    if (document.getElementById('page-admin').classList.contains('active')) {
+      loadAdmin();
+    }
+  } else {
+    toast(r.data.error || 'Failed to create problem', 'error');
+  }
+}
+
+function openCreateContestModal() {
+  document.getElementById('create-contest-modal').classList.add('active');
+}
+
+async function doCreateContest() {
+  const title = document.getElementById('new-contest-title').value.trim();
+  const start_time = document.getElementById('new-contest-start').value;
+  const end_time = document.getElementById('new-contest-end').value;
+  const status = document.getElementById('new-contest-status').value;
+  const description = document.getElementById('new-contest-desc').value.trim();
+
+  if (!title || !start_time || !end_time) {
+    toast('Title, start time, and end time are required', 'error');
+    return;
+  }
+
+  const r = await apiFetch('/contests', {
+    method: 'POST',
+    body: JSON.stringify({
+      title,
+      start_time: new Date(start_time).toISOString(),
+      end_time: new Date(end_time).toISOString(),
+      status,
+      description
+    })
+  });
+
+  if (r.ok) {
+    closeModal('create-contest-modal');
+    toast('Contest scheduled in contest.xlsx! 🏆', 'success');
+    if (document.getElementById('page-admin').classList.contains('active')) {
+      loadAdmin();
+    }
+  } else {
+    toast(r.data.error || 'Failed to create contest', 'error');
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────
 function formatDate(d) {
   if (isNaN(d)) return 'Invalid';
@@ -469,10 +708,10 @@ function relTime(iso) {
   } catch { return '–'; }
 }
 function escHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Init ──────────────────────────────────────────────
+// ── Initialization ────────────────────────────────────
 (async () => {
   await loadCurrentUser();
   loadHome();

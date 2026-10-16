@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -20,6 +20,7 @@
     <button class="nav-link" id="nav-contests" onclick="navigate('contests')"><i class="fa-solid fa-flag-checkered"></i> Contests</button>
     <button class="nav-link" id="nav-leaderboard" onclick="navigate('leaderboard')"><i class="fa-solid fa-ranking-star"></i> Leaderboard</button>
     <button class="nav-link" id="nav-submissions" onclick="navigate('submissions')"><i class="fa-solid fa-clock-rotate-left"></i> Submissions</button>
+    <button class="nav-link" id="nav-admin" onclick="navigate('admin')" style="display:none;"><i class="fa-solid fa-file-excel"></i> Admin & DB</button>
   </div>
   <div class="nav-right" id="nav-auth-area">
     <button class="btn btn-outline btn-sm" onclick="openLoginModal()">Login</button>
@@ -62,10 +63,11 @@
     </div>
     <footer><div class="container"><div class="footer-content">
       <div class="footer-logo">CodeArena</div>
-      <div class="footer-copy">Built with love for competitive programmers</div>
-      <div class="footer-links"><a class="footer-link" href="#">About</a><a class="footer-link" href="#">API</a><a class="footer-link" href="#">GitHub</a></div>
+      <div class="footer-copy">Powered by Excel Database & Python Judge Engine</div>
+      <div class="footer-links"><a class="footer-link" href="#" onclick="navigate('problems');return false;">Problems</a><a class="footer-link" href="#" onclick="navigate('contests');return false;">Contests</a><a class="footer-link" href="#" onclick="navigate('leaderboard');return false;">Leaderboard</a></div>
     </div></div></footer>
   </div>
+
   <!-- PROBLEMS -->
   <div class="page" id="page-problems">
     <div class="container section">
@@ -81,6 +83,7 @@
       <div class="card card-list" id="problems-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
     </div>
   </div>
+
   <!-- EDITOR -->
   <div class="page editor-page" id="page-editor">
     <div class="editor-header">
@@ -113,9 +116,7 @@
           <select class="form-input lang-select" id="lang-select">
             <option value="cpp">C++17</option>
             <option value="python">Python 3</option>
-            <option value="java">Java 21</option>
-            <option value="go">Go</option>
-            <option value="rust">Rust</option>
+            <option value="javascript">JavaScript</option>
           </select>
           <button class="btn btn-ghost btn-sm" onclick="resetEditor()" title="Reset"><i class="fa-solid fa-rotate-left"></i></button>
           <button class="btn btn-ghost btn-sm" onclick="copyCode()" title="Copy"><i class="fa-solid fa-copy"></i></button>
@@ -133,6 +134,7 @@
       </div>
     </div>
   </div>
+
   <!-- CONTESTS -->
   <div class="page" id="page-contests">
     <div class="container section">
@@ -141,6 +143,7 @@
       <div class="grid-2" id="contests-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
     </div>
   </div>
+
   <!-- CONTEST DETAIL -->
   <div class="page" id="page-contest-detail">
     <div class="container section">
@@ -148,6 +151,7 @@
       <div id="contest-detail-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
     </div>
   </div>
+
   <!-- LEADERBOARD -->
   <div class="page" id="page-leaderboard">
     <div class="container section">
@@ -156,6 +160,7 @@
       <div class="card card-list" id="leaderboard-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
     </div>
   </div>
+
   <!-- SUBMISSIONS -->
   <div class="page" id="page-submissions">
     <div class="container section">
@@ -164,6 +169,7 @@
       <div class="table-wrap" id="submissions-content"><div class="loading"><div class="spinner"></div>Loading...</div></div>
     </div>
   </div>
+
   <!-- PROFILE -->
   <div class="page" id="page-profile">
     <div class="profile-header">
@@ -188,7 +194,90 @@
       <div class="table-wrap" id="profile-submissions-table"></div>
     </div>
   </div>
+
+  <!-- ADMIN & EXCEL DATABASE CONSOLE -->
+  <div class="page" id="page-admin">
+    <div class="container section">
+      <div class="admin-header-flex">
+        <div>
+          <div class="section-title"><span class="gradient-text"><i class="fa-solid fa-file-excel"></i> Excel Database & Admin Console</span></div>
+          <div class="section-sub" style="margin-bottom:24px;">Powered by Microsoft Excel workbook (<code>contest.xlsx</code>) with atomic writes, auto-repair, and instant disk sync.</div>
+        </div>
+        <div class="admin-header-actions">
+          <button class="btn btn-primary" onclick="downloadExcelDb()"><i class="fa-solid fa-cloud-arrow-down"></i> Export Excel (.xlsx)</button>
+          <button class="btn btn-outline" onclick="triggerImportExcel()"><i class="fa-solid fa-cloud-arrow-up"></i> Import Excel</button>
+          <input type="file" id="excel-file-input" accept=".xlsx" style="display:none;" onchange="handleExcelUpload(event)"/>
+        </div>
+      </div>
+
+      <!-- Live Excel DB Status Cards -->
+      <div class="grid-3" style="margin-bottom:24px;">
+        <div class="card db-stat-card">
+          <div class="db-stat-icon" style="color:var(--green);"><i class="fa-solid fa-file-excel"></i></div>
+          <div class="db-stat-info">
+            <div class="db-stat-label">Database File</div>
+            <div class="db-stat-val" id="db-stat-filename">contest.xlsx</div>
+            <div class="db-stat-sub" id="db-stat-size">Loading...</div>
+          </div>
+        </div>
+        <div class="card db-stat-card">
+          <div class="db-stat-icon" style="color:var(--cyan);"><i class="fa-solid fa-arrows-rotate"></i></div>
+          <div class="db-stat-info">
+            <div class="db-stat-label">Engine & Sync</div>
+            <div class="db-stat-val" style="color:var(--green);"><i class="fa-solid fa-circle-check"></i> Live & Synced</div>
+            <div class="db-stat-sub" id="db-stat-modified">--</div>
+          </div>
+        </div>
+        <div class="card db-stat-card">
+          <div class="db-stat-icon" style="color:var(--purple3);"><i class="fa-solid fa-table-cells"></i></div>
+          <div class="db-stat-info">
+            <div class="db-stat-label">Database Capacity</div>
+            <div class="db-stat-val" id="db-stat-records">0 rows</div>
+            <div class="db-stat-sub" id="db-stat-sheets">7 worksheets</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operations Toolbar -->
+      <div class="card" style="margin-bottom:32px;padding:18px 24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px;">
+            <i class="fa-solid fa-sliders" style="color:var(--purple3);"></i> Database Operations
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" onclick="syncExcelDb()" title="Reload from disk if edited in Excel directly"><i class="fa-solid fa-arrows-rotate"></i> Sync from Disk</button>
+            <button class="btn btn-outline btn-sm" onclick="reformatExcelDb()" title="Auto-size columns, add zebra striping, borders, and auto-filters"><i class="fa-solid fa-wand-magic-sparkles"></i> Reformat & Beautify</button>
+            <button class="btn btn-primary btn-sm" onclick="openCreateProblemModal()"><i class="fa-solid fa-plus"></i> New Problem</button>
+            <button class="btn btn-primary btn-sm" onclick="openCreateContestModal()"><i class="fa-solid fa-plus"></i> New Contest</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Worksheet Explorer -->
+      <div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:20px;font-weight:700;"><i class="fa-solid fa-table"></i> Live Worksheet Explorer</div>
+          <div style="font-size:13px;color:var(--text2);">Direct real-time view of records stored inside each Excel sheet.</div>
+        </div>
+
+        <div class="tabs" id="admin-sheet-tabs">
+          <button class="tab active" onclick="switchAdminSheet('users', this)"><i class="fa-solid fa-users"></i> users (<span id="count-users">0</span>)</button>
+          <button class="tab" onclick="switchAdminSheet('problems', this)"><i class="fa-solid fa-code"></i> problems (<span id="count-problems">0</span>)</button>
+          <button class="tab" onclick="switchAdminSheet('contests', this)"><i class="fa-solid fa-trophy"></i> contests (<span id="count-contests">0</span>)</button>
+          <button class="tab" onclick="switchAdminSheet('contest_problems', this)"><i class="fa-solid fa-link"></i> contest_problems (<span id="count-contest_problems">0</span>)</button>
+          <button class="tab" onclick="switchAdminSheet('submissions', this)"><i class="fa-solid fa-paper-plane"></i> submissions (<span id="count-submissions">0</span>)</button>
+          <button class="tab" onclick="switchAdminSheet('leaderboard', this)"><i class="fa-solid fa-ranking-star"></i> leaderboard (<span id="count-leaderboard">0</span>)</button>
+          <button class="tab" onclick="switchAdminSheet('sessions', this)"><i class="fa-solid fa-key"></i> sessions (<span id="count-sessions">0</span>)</button>
+        </div>
+
+        <div class="table-wrap" id="admin-sheet-table-wrap">
+          <div class="loading"><div class="spinner"></div>Loading worksheet...</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
 <!-- LOGIN MODAL -->
 <div class="modal-overlay" id="login-modal">
   <div class="modal">
@@ -196,14 +285,19 @@
     <h2><i class="fa-solid fa-right-to-bracket"></i> Login</h2>
     <div class="form-group"><label class="form-label">Username</label><input type="text" class="form-input" id="login-username" placeholder="username" onkeydown="if(event.key==='Enter')doLogin()"/></div>
     <div class="form-group"><label class="form-label">Password</label><input type="password" class="form-input" id="login-password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+    <div style="padding:10px 14px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);border-radius:var(--radius-sm);margin-bottom:18px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px;">
+      <i class="fa-solid fa-key" style="color:var(--purple3);"></i>
+      <span>Default Admin: <strong>admin</strong> / <strong>admin123</strong></span>
+    </div>
     <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
     <div class="modal-footer-text">No account? <button class="btn btn-ghost btn-sm" onclick="closeModal('login-modal');openRegisterModal()">Register</button></div>
   </div>
 </div>
+
 <!-- REGISTER MODAL -->
 <div class="modal-overlay" id="register-modal">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal('register-modal')"><i class="fa-solid fa-xmark"></i></button>
+    <button class="modal-close" onclick="closeModal('register-modal')"><i class="fa-solid fa-user-plus"></i></button>
     <h2><i class="fa-solid fa-user-plus"></i> Create Account</h2>
     <div class="form-group"><label class="form-label">Username</label><input type="text" class="form-input" id="reg-username" placeholder="choose_username"/></div>
     <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="reg-email" placeholder="you@email.com"/></div>
@@ -212,6 +306,61 @@
     <div class="modal-footer-text">Have an account? <button class="btn btn-ghost btn-sm" onclick="closeModal('register-modal');openLoginModal()">Login</button></div>
   </div>
 </div>
+
+<!-- CREATE PROBLEM MODAL -->
+<div class="modal-overlay" id="create-problem-modal">
+  <div class="modal" style="max-width:680px;">
+    <button class="modal-close" onclick="closeModal('create-problem-modal')"><i class="fa-solid fa-xmark"></i></button>
+    <h2><i class="fa-solid fa-code"></i> Add Problem to Excel DB</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group"><label class="form-label">Title</label><input type="text" class="form-input" id="new-prob-title" placeholder="e.g. Valid Parentheses"/></div>
+      <div class="form-group"><label class="form-label">Difficulty</label>
+        <select class="form-input" id="new-prob-diff">
+          <option value="Easy">Easy</option>
+          <option value="Medium">Medium</option>
+          <option value="Hard">Hard</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+      <div class="form-group"><label class="form-label">Time Limit (ms)</label><input type="number" class="form-input" id="new-prob-time" value="1000"/></div>
+      <div class="form-group"><label class="form-label">Memory (MB)</label><input type="number" class="form-input" id="new-prob-mem" value="256"/></div>
+      <div class="form-group"><label class="form-label">Tags</label><input type="text" class="form-input" id="new-prob-tags" placeholder="stack,string"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Problem Statement</label><textarea class="form-input" id="new-prob-stmt" rows="3" placeholder="Describe the problem..."></textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group"><label class="form-label">Input Format</label><textarea class="form-input" id="new-prob-input-fmt" rows="2" placeholder="First line: integer N"></textarea></div>
+      <div class="form-group"><label class="form-label">Output Format</label><textarea class="form-input" id="new-prob-output-fmt" rows="2" placeholder="Print the answer"></textarea></div>
+    </div>
+    <div class="form-group"><label class="form-label">Constraints</label><input type="text" class="form-input" id="new-prob-constraints" placeholder="1 <= N <= 10^5"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group"><label class="form-label">Sample Input</label><textarea class="form-input" id="new-prob-sample-in" rows="2" placeholder="4\n1 2 3 4"></textarea></div>
+      <div class="form-group"><label class="form-label">Sample Output</label><textarea class="form-input" id="new-prob-sample-out" rows="2" placeholder="10"></textarea></div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="doCreateProblem()"><i class="fa-solid fa-plus"></i> Save Problem to contest.xlsx</button>
+  </div>
+</div>
+
+<!-- CREATE CONTEST MODAL -->
+<div class="modal-overlay" id="create-contest-modal">
+  <div class="modal" style="max-width:540px;">
+    <button class="modal-close" onclick="closeModal('create-contest-modal')"><i class="fa-solid fa-xmark"></i></button>
+    <h2><i class="fa-solid fa-trophy"></i> Add Contest to Excel DB</h2>
+    <div class="form-group"><label class="form-label">Contest Title</label><input type="text" class="form-input" id="new-contest-title" placeholder="CodeArena Round #2"/></div>
+    <div class="form-group"><label class="form-label">Start Time</label><input type="datetime-local" class="form-input" id="new-contest-start"/></div>
+    <div class="form-group"><label class="form-label">End Time</label><input type="datetime-local" class="form-input" id="new-contest-end"/></div>
+    <div class="form-group"><label class="form-label">Status</label>
+      <select class="form-input" id="new-contest-status">
+        <option value="upcoming">Upcoming</option>
+        <option value="ongoing">Ongoing</option>
+        <option value="ended">Ended</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-input" id="new-contest-desc" rows="3" placeholder="Contest rules and welcome message..."></textarea></div>
+    <button class="btn btn-primary btn-full" onclick="doCreateContest()"><i class="fa-solid fa-plus"></i> Save Contest to contest.xlsx</button>
+  </div>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>

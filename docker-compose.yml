@@ -12,7 +12,7 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── Python Backend (Flask + openpyxl Excel Database) ────────────────────────
+  # ── PHP Backend (Native OpenXML Excel Database) ────────────────────────
   backend:
     build:
       context: ./backend
@@ -23,7 +23,6 @@ services:
       REDIS_RESULT_PREFIX: "result:"
       DATA_FILE: "/app/data/contest.xlsx"
       SECRET_KEY: "codearena-prod-secret-change-me"
-      FLASK_ENV: "production"
     volumes:
       - backend_data:/app/data
     ports: ["5000:5000"]
